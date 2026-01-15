@@ -1,0 +1,19 @@
+﻿@startuml
+
+class User {
+    int id
+    string name
+    string login
+    string password
+}
+
+class Transactions {
+    int id
+    int user_id
+    string description
+    int amount
+}
+
+User "1" -- "many" Transactions
+
+@enduml
