@@ -79,19 +79,15 @@ func (h *HandlersKeeper) HandleReadUser(resp http.ResponseWriter, req *http.Requ
 
 func (h *HandlersKeeper) HandleUpdateUser(resp http.ResponseWriter, req *http.Request) {
 
-	request := req.PathValue("id")
-	if request != "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(request)
+	user := requests.User{}
+	err := json.NewDecoder(req.Body).Decode(&user)
 	if err != nil {
+		resp.Write([]byte(err.Error()))
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err = h.dbEngine.UpdateUser(req.Context(), id)
+	err = h.dbEngine.UpdateUser(req.Context(), user)
 	if err != nil {
 		resp.Write([]byte(err.Error()))
 		resp.WriteHeader(http.StatusInternalServerError)

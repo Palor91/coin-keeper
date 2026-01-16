@@ -1,32 +1,32 @@
 package engine
 
 import (
-	"coin-keeper/internal/database/sql/models/read"
-	"coin-keeper/internal/database/sql/models/write"
 	"coin-keeper/internal/server/http/requests"
+	"coin-keeper/internal/server/http/responses"
 	"context"
 )
 
 func (a *Adapter) CreateUser(ctx context.Context, req requests.User) error {
-	userDB := ConvertUserReqToDBW(req)
+	userDB := ConvertUserReqToDBWrite(req)
 
 	return a.dbEngine.CreateUser(ctx, userDB)
 }
 
-func (a *Adapter) ReadUser(ctx context.Context, req requests.User) (read.User, error) {
-	userDB := ConvertUserReqToDBR(req)
-
-	return a.dbEngine.ReadUser(ctx, userDB.ID)
+func (a *Adapter) ReadUser(ctx context.Context, id int) (responses.User, error) {
+	user, err := a.dbEngine.ReadUser(ctx, id)
+	if err != nil {
+		return responses.User{}, err
+	}
+	return ConvertUserDBToResp(user), nil
 }
 
 func (a *Adapter) UpdateUser(ctx context.Context, req requests.User) error {
-	userDB := ConvertUserReqToDBR(req)
+	userDB := ConvertUserReqToDBWrite(req)
 
-	return a.dbEngine.UpdateUser(ctx, userDB.ID, write.User{})
+	return a.dbEngine.UpdateUser(ctx, req.ID, userDB)
 }
 
-func (a *Adapter) DeleteUser(ctx context.Context, req requests.User) error {
-	userDB := ConvertUserReqToDBR(req)
+func (a *Adapter) DeleteUser(ctx context.Context, id int) error {
 
-	return a.dbEngine.DeleteUser(ctx, userDB.ID)
+	return a.dbEngine.DeleteUser(ctx, id)
 }
