@@ -12,6 +12,7 @@ class Transactions {
     int user_id
     string description
     int amount
+    datetime date
 }
 
 User "1" -- "many" Transactions

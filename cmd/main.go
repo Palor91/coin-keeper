@@ -1,21 +1,24 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
-	"log"
+	adapter "coin-keeper/internal/adapter/engine"
+	"coin-keeper/internal/database/sql/engine"
+	handlers "coin-keeper/internal/server/handlers/engine"
+	"coin-keeper/internal/server/router"
+	"net/http"
 )
 
+const connStr = "host=localhost port=5432 user=postgres password=1234 dbname=mydb sslmode=disable"
+
 func main() {
-	connStr := "host=localhost port=5432 user=postgres password=1234 dbname=mydb sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	dbEngine, err := engine.NewDatabaseEngine(connStr)
 	if err != nil {
-		log.Fatal("Ошибка подключения к БД:", err)
+		panic(err)
 	}
+	adapter := adapter.NewAdapter(dbEngine)
+	handlersKeeper := handlers.NewHandlersKeeper(adapter)
+	router := router.NewRouter(handlersKeeper)
+	router.SetupRoutes()
 
-	if err = db.Ping(); err != nil {
-		log.Fatal("База недоступна:", err)
-	}
-
-	fmt.Println("Подключение к PostgreSQL успешно!")
+	http.ListenAndServe(":8080", nil)
 }
