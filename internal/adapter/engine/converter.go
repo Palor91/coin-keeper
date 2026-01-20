@@ -22,3 +22,23 @@ func ConvertUserDBToResp(u read.User) responses.User {
 		Login: u.Login,
 	}
 }
+
+func ConvertTransactionReqToDBWrite(req requests.Transaction) write.Transactions {
+	return write.Transactions{
+		ID:          req.ID,
+		User_id:     req.User_id,
+		Description: req.Description,
+		Amount:      req.Amount,
+		Date:        req.Date,
+	}
+}
+
+func ConvertTransactionReqDBToResp(u read.Transactions) responses.Transaction {
+	return responses.Transaction{
+		ID:          u.ID,
+		User_id:     u.User_id,
+		Description: u.Description,
+		Amount:      u.Amount,
+		Date:        u.Date,
+	}
+}
