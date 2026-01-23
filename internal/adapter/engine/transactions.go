@@ -1,13 +1,14 @@
 package engine
 
 import (
+	engine "coin-keeper/internal/converters"
 	"coin-keeper/internal/server/http/requests"
 	"coin-keeper/internal/server/http/responses"
 	"context"
 )
 
 func (a *Adapter) CreateTransaction(ctx context.Context, req requests.Transaction) error {
-	transactionDB := ConvertTransactionReqToDBWrite(req)
+	transactionDB := engine.ConvertTransactionReqToDBWrite(req)
 
 	return a.dbEngine.CreateTransaction(ctx, transactionDB)
 }
@@ -17,11 +18,11 @@ func (a *Adapter) ReadTransaction(ctx context.Context, id int) (responses.Transa
 	if err != nil {
 		return responses.Transaction{}, err
 	}
-	return ConvertTransactionReqDBToResp(transaction), nil
+	return engine.ConvertTransactionReqDBToResp(transaction), nil
 }
 
 func (a *Adapter) UpdateTransaction(ctx context.Context, req requests.Transaction) error {
-	transactionDB := ConvertTransactionReqToDBWrite(req)
+	transactionDB := engine.ConvertTransactionReqToDBWrite(req)
 
 	return a.dbEngine.UpdateTransaction(ctx, req.ID, transactionDB)
 }

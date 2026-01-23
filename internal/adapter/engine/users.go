@@ -1,7 +1,7 @@
 package engine
 
 import (
-	engine "coin-keeper/internal/adapter/engine/converters"
+	engine "coin-keeper/internal/converters"
 	"coin-keeper/internal/server/http/requests"
 	"coin-keeper/internal/server/http/responses"
 	"context"
