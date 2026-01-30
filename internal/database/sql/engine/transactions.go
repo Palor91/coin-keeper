@@ -4,6 +4,7 @@ import (
 	"coin-keeper/internal/database/sql/models/read"
 	"coin-keeper/internal/database/sql/models/write"
 	"context"
+	"fmt"
 
 	"github.com/rs/zerolog/log"
 )
@@ -63,4 +64,32 @@ func (e *DatabaseEngine) DeleteTransaction(ctx context.Context, transactionID in
 		log.Error().Msgf("Wrong delete request: %v", err)
 	}
 	return err
+}
+
+func (e *DatabaseEngine) GetTrasactionByOption(ctx context.Context, field string, value any) (read.Transactions, error) {
+
+	allowed := map[string]bool{
+		"id":          true,
+		"user_id":     true,
+		"description": true,
+		"amount":      true,
+		"date":        true,
+	}
+
+	if !allowed[field] {
+		return read.Transactions{}, fmt.Errorf("Ivalid field: %s", field)
+	}
+
+	query := fmt.Sprintf(` SELECT id, user_id, description, amount, date FROM transactions WHERE %s = $1`, field)
+
+	rows := e.db.QueryRowContext(ctx, query, value)
+
+	result := read.Transactions{}, nil
+	for rows.Next() {
+		if err = rows.Scan(&result.ID, &result.User_id, &result.Description, &result.Amount, &result.Date); err != nil {
+			log.Error().Msgf("Error during decoding transaction by %s = %v, err: %v")
+			return read.Transactions{}, err
+		}
+		return result, nil
+	}
 }

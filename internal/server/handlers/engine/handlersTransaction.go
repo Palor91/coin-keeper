@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (h *HandlersKeeper) HandleCreateTransaction(resp http.ResponseWriter, req *http.Request) {
@@ -93,4 +94,83 @@ func (h *HandlersKeeper) HandleDeleteTransaction(resp http.ResponseWriter, req *
 	}
 
 	resp.WriteHeader(http.StatusOK)
+}
+
+func (h *HandlersKeeper) GetTrasactionByOption(resp http.ResponseWriter, req *http.Request) {
+	// 1. Читаем GET‑параметры
+	q := req.URL.Query()
+
+	userID := q.Get("user_id")
+	minAmount := q.Get("min_amount")
+	maxAmount := q.Get("max_amount")
+	dateFrom := q.Get("date_from")
+	dateTo := q.Get("date_to")
+
+	// 2. Готовим динамические фильтры
+	filters := []string{}
+	args := []interface{}{}
+	i := 1
+
+	if userID != "" {
+		filters = append(filters, fmt.Sprintf("user_id = $%d", i))
+		args = append(args, userID)
+		i++
+	}
+
+	if minAmount != "" {
+		filters = append(filters, fmt.Sprintf("amount >= $%d", i))
+		args = append(args, minAmount)
+		i++
+	}
+
+	if maxAmount != "" {
+		filters = append(filters, fmt.Sprintf("amount <= $%d", i))
+		args = append(args, maxAmount)
+		i++
+	}
+
+	if dateFrom != "" {
+		filters = append(filters, fmt.Sprintf("date >= $%d", i))
+		args = append(args, dateFrom)
+		i++
+	}
+
+	if dateTo != "" {
+		filters = append(filters, fmt.Sprintf("date <= $%d", i))
+		args = append(args, dateTo)
+		i++
+	}
+
+	// 3. Собираем SQL‑запрос
+	query := `
+        SELECT id, user_id, description, amount, date
+        FROM transactions
+    `
+	if len(filters) > 0 {
+		query += " WHERE " + strings.Join(filters, " AND ")
+	}
+
+	// 4. Выполняем запрос
+	rows, err := h.db.Query(query, args...)
+	if err != nil {
+		http.Error(resp, err.Error(), 500)
+		return
+	}
+	defer rows.Close()
+
+	// 5. Сканируем результат
+	var result []Transactions
+
+	for rows.Next() {
+		var t Transactions
+		if err := rows.Scan(&t.ID, &t.User_id, &t.Description, &t.Amount, &t.Date); err != nil {
+			http.Error(resp, err.Error(), 500)
+			return
+		}
+		result = append(result, t)
+	}
+
+	// 6. Отдаём JSON
+	resp.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(resp).Encode(result)
 }
