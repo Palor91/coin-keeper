@@ -1,10 +1,12 @@
 package engine
 
 import (
+	"coin-keeper/internal/database/sql/models/filters"
 	"coin-keeper/internal/database/sql/models/read"
 	"coin-keeper/internal/database/sql/models/write"
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 )
@@ -66,30 +68,73 @@ func (e *DatabaseEngine) DeleteTransaction(ctx context.Context, transactionID in
 	return err
 }
 
-func (e *DatabaseEngine) GetTrasactionByOption(ctx context.Context, field string, value any) (read.Transactions, error) {
+func (e *DatabaseEngine) GetTrasactionByOption(
+	ctx context.Context,
+	filter filters.TransactionFilter,
+) ([]read.Transactions, error) {
 
-	allowed := map[string]bool{
-		"id":          true,
-		"user_id":     true,
-		"description": true,
-		"amount":      true,
-		"date":        true,
+	filters := make([]string, 0)
+	args := make([]any, 0)
+	i := 1
+
+	if filter.UserID != 0 {
+		filters = append(filters, fmt.Sprintf("user_id = $%d", i))
+		args = append(args, filter.UserID)
+		i++
 	}
 
-	if !allowed[field] {
-		return read.Transactions{}, fmt.Errorf("Ivalid field: %s", field)
+	if filter.MinAmount != 0 {
+		filters = append(filters, fmt.Sprintf("amount >= $%d", i))
+		args = append(args, filter.MinAmount)
+		i++
 	}
 
-	query := fmt.Sprintf(` SELECT id, user_id, description, amount, date FROM transactions WHERE %s = $1`, field)
+	if filter.MaxAmount != 0 {
+		filters = append(filters, fmt.Sprintf("amount <= $%d", i))
+		args = append(args, filter.MaxAmount)
+		i++
+	}
 
-	rows := e.db.QueryRowContext(ctx, query, value)
+	if filter.DateFrom.Valid {
+		filters = append(filters, fmt.Sprintf("date >= $%d", i))
+		args = append(args, filter.DateFrom)
+		i++
+	}
 
-	result := read.Transactions{}, nil
+	if filter.DateTo.Valid {
+		filters = append(filters, fmt.Sprintf("date <= $%d", i))
+		args = append(args, filter.DateTo)
+		i++
+	}
+
+	// 3. Собираем SQL‑запрос
+	query := `
+        SELECT id, user_id, description, amount, date
+        FROM transactions
+    `
+	if len(filters) > 0 {
+		query += " WHERE " + strings.Join(filters, " AND ")
+	}
+
+	// 4. Выполняем запрос
+	rows, err := e.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Msgf("Error during reading transactions: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	// 5. Сканируем результат
+	var result []read.Transactions
+
 	for rows.Next() {
-		if err = rows.Scan(&result.ID, &result.User_id, &result.Description, &result.Amount, &result.Date); err != nil {
-			log.Error().Msgf("Error during decoding transaction by %s = %v, err: %v")
-			return read.Transactions{}, err
+		var t read.Transactions
+		if err := rows.Scan(&t.ID, &t.User_id, &t.Description, &t.Amount, &t.Date); err != nil {
+			log.Error().Msgf("Error during scanning transaction: %v", err)
+			return nil, err
 		}
-		return result, nil
+		result = append(result, t)
 	}
+
+	return result, nil
 }
