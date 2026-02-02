@@ -106,6 +106,7 @@ func (h *HandlersKeeper) GetTrasactionByOption(resp http.ResponseWriter, req *ht
 		http.Error(resp, err.Error(), 500)
 		return
 	}
+
 	// 6. Отдаём JSON
 	resp.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(resp).Encode(result)
