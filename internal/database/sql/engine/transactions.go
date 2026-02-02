@@ -109,12 +109,14 @@ func (e *DatabaseEngine) GetTrasactionByOption(
 
 	// 3. Собираем SQL‑запрос
 	query := `
-        SELECT id, user_id, description, amount, date
+        SELECT id, user_id, description, amount, date,
         FROM transactions
     `
 	if len(filters) > 0 {
 		query += " WHERE " + strings.Join(filters, " AND ")
 	}
+
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", i, i+1)
 
 	// 4. Выполняем запрос
 	rows, err := e.db.QueryContext(ctx, query, args...)
