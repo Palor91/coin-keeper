@@ -8,4 +8,6 @@ type TransactionFilter struct {
 	MaxAmount float64
 	DateFrom  sql.NullTime
 	DateTo    sql.NullTime
+	Limit     int
+	Offset    int
 }
