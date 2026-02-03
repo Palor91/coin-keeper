@@ -8,6 +8,8 @@ type TransactionFilter struct {
 	MaxAmount string
 	DateFrom  string
 	DateTo    string
+	Limit     string
+	Offset    string
 }
 
 func NewTransactionFilter(req *http.Request) TransactionFilter {
@@ -17,5 +19,7 @@ func NewTransactionFilter(req *http.Request) TransactionFilter {
 		MaxAmount: req.URL.Query().Get("max_amount"),
 		DateFrom:  req.URL.Query().Get("date_from"),
 		DateTo:    req.URL.Query().Get("date_to"),
+		Limit:     req.URL.Query().Get("limit"),
+		Offset:    req.URL.Query().Get("offset"),
 	}
 }

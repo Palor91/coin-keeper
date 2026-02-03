@@ -10,6 +10,9 @@ import (
 
 const dateOnlyLayout = "2006-01-02"
 
+const defaultLimit = 20
+const defaultOffset = 0
+
 func ConvertTransactionFilter(filter httpFilters.TransactionFilter) dbFilters.TransactionFilter {
 	dbFilter := dbFilters.TransactionFilter{}
 
@@ -42,9 +45,21 @@ func ConvertTransactionFilter(filter httpFilters.TransactionFilter) dbFilters.Tr
 		dbFilter.DateTo = sql.NullTime{Valid: true, Time: dateTo}
 	}
 
+	limit, err := strconv.ParseInt(filter.Limit, 10, 64)
+	if err != nil || limit <= 0 {
+		limit = defaultLimit
+	}
+
+	offset, err := strconv.ParseInt(filter.Offset, 10, 64)
+	if err != nil || offset <= 0 {
+		limit = defaultOffset
+	}
+
 	dbFilter.UserID = userID
 	dbFilter.MinAmount = minAmount
 	dbFilter.MaxAmount = maxAmount
+	dbFilter.Limit = int(limit)
+	dbFilter.Offset = int(offset)
 
 	return dbFilter
 }
