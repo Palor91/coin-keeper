@@ -34,3 +34,11 @@ func ConvertTransactionReqDBToResp(u read.Transactions) responses.Transaction {
 		Date:        u.Date.Format(layout),
 	}
 }
+
+func ConvertTransactionsDBtoResps(model ...read.Transactions) []responses.Transaction {
+	var resp = make([]responses.Transaction, len(model))
+	for i, u := range model {
+		resp[i] = ConvertTransactionReqDBToResp(u)
+	}
+	return resp
+}

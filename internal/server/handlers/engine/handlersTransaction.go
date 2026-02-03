@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"coin-keeper/internal/server/http/requests"
+	"coin-keeper/internal/server/http/requests/filters"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -93,4 +94,20 @@ func (h *HandlersKeeper) HandleDeleteTransaction(resp http.ResponseWriter, req *
 	}
 
 	resp.WriteHeader(http.StatusOK)
+}
+
+func (h *HandlersKeeper) GetTrasactionByOption(resp http.ResponseWriter, req *http.Request) {
+	// 1. Читаем GET‑параметры
+	transactionFilter := filters.NewTransactionFilter(req)
+	// 2. Вызываем метод из слоя требований
+	result, err := h.dbEngine.GetTransactionByOption(req.Context(), transactionFilter)
+	if err != nil {
+		// 3. В случае ошибки отдаем 500
+		http.Error(resp, err.Error(), 500)
+		return
+	}
+
+	// 6. Отдаём JSON
+	resp.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(resp).Encode(result)
 }

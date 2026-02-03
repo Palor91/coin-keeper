@@ -1,9 +1,12 @@
 package engine
 
 import (
+	"coin-keeper/internal/database/sql/models/filters"
 	"coin-keeper/internal/database/sql/models/read"
 	"coin-keeper/internal/database/sql/models/write"
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 )
@@ -63,4 +66,77 @@ func (e *DatabaseEngine) DeleteTransaction(ctx context.Context, transactionID in
 		log.Error().Msgf("Wrong delete request: %v", err)
 	}
 	return err
+}
+
+func (e *DatabaseEngine) GetTrasactionByOption(
+	ctx context.Context,
+	filter filters.TransactionFilter,
+) ([]read.Transactions, error) {
+
+	filters := make([]string, 0)
+	args := make([]any, 0)
+	i := 1
+
+	if filter.UserID != 0 {
+		filters = append(filters, fmt.Sprintf("user_id = $%d", i))
+		args = append(args, filter.UserID)
+		i++
+	}
+
+	if filter.MinAmount != 0 {
+		filters = append(filters, fmt.Sprintf("amount >= $%d", i))
+		args = append(args, filter.MinAmount)
+		i++
+	}
+
+	if filter.MaxAmount != 0 {
+		filters = append(filters, fmt.Sprintf("amount <= $%d", i))
+		args = append(args, filter.MaxAmount)
+		i++
+	}
+
+	if filter.DateFrom.Valid {
+		filters = append(filters, fmt.Sprintf("date >= $%d", i))
+		args = append(args, filter.DateFrom)
+		i++
+	}
+
+	if filter.DateTo.Valid {
+		filters = append(filters, fmt.Sprintf("date <= $%d", i))
+		args = append(args, filter.DateTo)
+		i++
+	}
+
+	// 3. Собираем SQL‑запрос
+	query := `
+        SELECT id, user_id, description, amount, date,
+        FROM transactions
+    `
+	if len(filters) > 0 {
+		query += " WHERE " + strings.Join(filters, " AND ")
+	}
+
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", i, i+1)
+
+	// 4. Выполняем запрос
+	rows, err := e.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Error().Msgf("Error during reading transactions: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	// 5. Сканируем результат
+	var result []read.Transactions
+
+	for rows.Next() {
+		var t read.Transactions
+		if err := rows.Scan(&t.ID, &t.User_id, &t.Description, &t.Amount, &t.Date); err != nil {
+			log.Error().Msgf("Error during scanning transaction: %v", err)
+			return nil, err
+		}
+		result = append(result, t)
+	}
+
+	return result, nil
 }
